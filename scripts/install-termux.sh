@@ -92,4 +92,4 @@ log "Run:"
 log "  cd ~/cezar"
 log "  ./build/cezar --help"
 log ""
-log "All installation checks passed."Commit
+log "All installation checks passed."
