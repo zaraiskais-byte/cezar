@@ -55,30 +55,58 @@ static void test_http_rejects_non_http_schemes(void) {
 
 static void test_write_file_masks_special_mode_bits(void) {
     char path[512];
-    const char *tmpdir = getenv("TMPDIR");
-    char fallback[512];
+    char candidate[512];
+    const char *env_tmpdir = getenv("TMPDIR");
+    const char *home = getenv("HOME");
+    const char *prefix = getenv("PREFIX");
+    const char *tmpdir = NULL;
 
-    if (!tmpdir || !*tmpdir) {
-        const char *prefix = getenv("PREFIX");
-        if (prefix && *prefix) {
-            int n = snprintf(fallback, sizeof(fallback), "%s/tmp", prefix);
-            if (n >= 0 && (size_t)n < sizeof(fallback))
-                tmpdir = fallback;
+    const char *candidates[5] = {
+        env_tmpdir,
+        NULL,
+        NULL,
+        prefix,
+        "/tmp"
+    };
+
+    if (home && *home) {
+        int n = snprintf(candidate, sizeof(candidate),
+                         "%s/.cache/cezar/tmp", home);
+        if (n >= 0 && (size_t)n < sizeof(candidate)) {
+            static char home_tmp[512];
+            memcpy(home_tmp, candidate, (size_t)n + 1);
+            candidates[1] = home_tmp;
+        }
+
+        n = snprintf(candidate, sizeof(candidate), "%s/tmp", home);
+        if (n >= 0 && (size_t)n < sizeof(candidate)) {
+            static char home_tmp2[512];
+            memcpy(home_tmp2, candidate, (size_t)n + 1);
+            candidates[2] = home_tmp2;
         }
     }
 
-    if (!tmpdir || !*tmpdir) {
-        const char *home = getenv("HOME");
-        if (home && *home) {
-            int n = snprintf(fallback, sizeof(fallback), "%s/tmp", home);
-            if (n >= 0 && (size_t)n < sizeof(fallback))
-                tmpdir = fallback;
+    for (size_t i = 0; i < sizeof(candidates) / sizeof(candidates[0]); ++i) {
+        const char *dir = candidates[i];
+        if (!dir || !*dir)
+            continue;
+
+        if (mkdir(dir, 0700) != 0 && access(dir, F_OK) != 0)
+            continue;
+
+        if (access(dir, W_OK | X_OK) == 0) {
+            tmpdir = dir;
+            break;
         }
     }
 
-    if (!tmpdir || !*tmpdir)
-        tmpdir = "/tmp";
-    int n = snprintf(path, sizeof(path), "%s/cezar-security-test.XXXXXX", tmpdir);
+    if (!tmpdir) {
+        fprintf(stderr, "no writable temporary directory available\n");
+        exit(1);
+    }
+
+    int n = snprintf(path, sizeof(path),
+                     "%s/cezar-security-test.XXXXXX", tmpdir);
     if (n < 0 || (size_t)n >= sizeof(path)) {
         fprintf(stderr, "temporary path is too long\n");
         exit(1);
@@ -107,7 +135,8 @@ static void test_write_file_masks_special_mode_bits(void) {
         exit(1);
     }
     if ((st.st_mode & 07777) != 0777) {
-        fprintf(stderr, "mode mask: got %04o want 0777\n", (unsigned)(st.st_mode & 07777));
+        fprintf(stderr, "mode mask: got %04o want 0777\n",
+                (unsigned)(st.st_mode & 07777));
         unlink(path);
         exit(1);
     }

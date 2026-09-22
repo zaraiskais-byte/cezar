@@ -3,10 +3,13 @@ set -Eeuo pipefail
 
 REPO_URL="https://github.com/zaraiskais-byte/cezar.git"
 INSTALL_DIR="$HOME/cezar"
-LOG_DIR="${TMPDIR:-$HOME/tmp}"
-LOG_FILE="$LOG_DIR/cezar-install.log"
+CEZAR_TMPDIR="$HOME/.cache/cezar/tmp"
+mkdir -p "$CEZAR_TMPDIR"
+chmod 700 "$CEZAR_TMPDIR"
+export TMPDIR="$CEZAR_TMPDIR"
 
-mkdir -p "$LOG_DIR"
+LOG_DIR="$CEZAR_TMPDIR"
+LOG_FILE="$LOG_DIR/cezar-install.log"
 
 log() {
     printf '[cezar] %s\n' "$*"
