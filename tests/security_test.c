@@ -54,11 +54,30 @@ static void test_http_rejects_non_http_schemes(void) {
 }
 
 static void test_write_file_masks_special_mode_bits(void) {
+    char path[512];
     const char *tmpdir = getenv("TMPDIR");
+    char fallback[512];
+
+    if (!tmpdir || !*tmpdir) {
+        const char *prefix = getenv("PREFIX");
+        if (prefix && *prefix) {
+            int n = snprintf(fallback, sizeof(fallback), "%s/tmp", prefix);
+            if (n >= 0 && (size_t)n < sizeof(fallback))
+                tmpdir = fallback;
+        }
+    }
+
+    if (!tmpdir || !*tmpdir) {
+        const char *home = getenv("HOME");
+        if (home && *home) {
+            int n = snprintf(fallback, sizeof(fallback), "%s/tmp", home);
+            if (n >= 0 && (size_t)n < sizeof(fallback))
+                tmpdir = fallback;
+        }
+    }
+
     if (!tmpdir || !*tmpdir)
         tmpdir = "/tmp";
-
-    char path[512];
     int n = snprintf(path, sizeof(path), "%s/cezar-security-test.XXXXXX", tmpdir);
     if (n < 0 || (size_t)n >= sizeof(path)) {
         fprintf(stderr, "temporary path is too long\n");
