@@ -17,3 +17,8 @@ jobs:
           sudo apt-get install -y build-essential libcurl4-openssl-dev libssl-dev
       - name: build
         run: make
+      - name: upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: cezar-linux
+          path: build/cezar
